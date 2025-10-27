@@ -1,0 +1,149 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2018  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 18.0.0 Build 614 04/24/2018 SJ Standard Edition
+# Date created = 22:39:18  June 30, 2025
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		qtech_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV GX"
+set_global_assignment -name DEVICE EP4CGX150DF27I7
+set_global_assignment -name TOP_LEVEL_ENTITY qmtech
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 18.0.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "22:39:18  JUNE 30, 2025"
+set_global_assignment -name LAST_QUARTUS_VERSION "18.1.1 Standard Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP "-40"
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 100
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_location_assignment PIN_B14 -to clk50
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 16
+
+
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to button[1]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to button[0]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to sw[2]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to sw[1]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to sw[0]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[0]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[1]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[2]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[3]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[4]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[5]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[6]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[7]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[8]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[9]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[10]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to cons_col[11]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to i2c_SCL
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to i2c_SDA
+set_location_assignment PIN_AE19 -to i2c_SCL
+set_location_assignment PIN_AC19 -to i2c_SDA
+set_location_assignment PIN_AF24 -to irps_rxd
+set_location_assignment PIN_AC21 -to irps_txd
+set_location_assignment PIN_AD23 -to rst_n
+set_location_assignment PIN_AF25 -to button[0]
+set_location_assignment PIN_AD21 -to button[1]
+set_location_assignment PIN_AF21 -to led[0]
+set_location_assignment PIN_AF19 -to led[1]
+set_location_assignment PIN_AD19 -to led[2]
+set_location_assignment PIN_AF18 -to led[3]
+set_location_assignment PIN_AD18 -to led[4]
+set_location_assignment PIN_AE23 -to sdcard_cs
+set_location_assignment PIN_AF20 -to sdcard_miso
+set_location_assignment PIN_AE22 -to sdcard_mosi
+set_location_assignment PIN_AD20 -to sdcard_sclk
+set_location_assignment PIN_AF23 -to sw[0]
+set_location_assignment PIN_AF22 -to sw[1]
+set_location_assignment PIN_AE21 -to sw[2]
+set_location_assignment PIN_C14 -to cons_col[0]
+set_location_assignment PIN_C4 -to cons_col[1]
+set_location_assignment PIN_C1 -to cons_col[2]
+set_location_assignment PIN_A11 -to cons_col[3]
+set_location_assignment PIN_A12 -to cons_col[4]
+set_location_assignment PIN_C10 -to cons_col[5]
+set_location_assignment PIN_A9 -to cons_col[6]
+set_location_assignment PIN_A6 -to cons_col[7]
+set_location_assignment PIN_B6 -to cons_col[8]
+set_location_assignment PIN_A8 -to cons_col[9]
+set_location_assignment PIN_A13 -to cons_col[10]
+set_location_assignment PIN_C11 -to cons_col[11]
+set_location_assignment PIN_C13 -to cons_row[0]
+set_location_assignment PIN_A2 -to cons_row[1]
+set_location_assignment PIN_A3 -to cons_row[2]
+set_location_assignment PIN_C15 -to cons_ledrow[0]
+set_location_assignment PIN_B15 -to cons_ledrow[1]
+set_location_assignment PIN_A4 -to cons_ledrow[2]
+set_location_assignment PIN_B4 -to cons_ledrow[3]
+set_location_assignment PIN_B5 -to cons_ledrow[4]
+set_location_assignment PIN_A7 -to cons_ledrow[5]
+set_global_assignment -name VERILOG_FILE qmtech.v
+set_global_assignment -name VERILOG_FILE config.v
+set_global_assignment -name QIP_FILE "ip-components/pll.qip"
+set_global_assignment -name VERILOG_FILE sram.v
+set_global_assignment -name MIF_FILE bootmon.mif
+set_global_assignment -name VERILOG_FILE "ip-components/bootrom.v"
+set_global_assignment -name QIP_FILE "ip-components/sectorbuf.qip"
+set_global_assignment -name VERILOG_FILE console.v
+set_global_assignment -name VERILOG_FILE i2c_master.v
+set_global_assignment -name VERILOG_FILE toy.v
+set_global_assignment -name VERILOG_FILE kw11p.v
+set_global_assignment -name VERILOG_FILE pr11.v
+set_global_assignment -name VERILOG_FILE pp11.v
+set_global_assignment -name VERILOG_FILE lp11.v
+set_global_assignment -name VERILOG_FILE rl11.v
+set_global_assignment -name VERILOG_FILE topboard22.v
+set_global_assignment -name SDC_FILE qmtech.sdc
+set_global_assignment -name VERILOG_FILE ../../hdl/pdp2011.v
+set_global_assignment -name VERILOG_FILE ../../hdl/pdp2011/wb_cpu2011.v
+set_global_assignment -name VERILOG_FILE ../../hdl/pdp2011/mmu.v
+set_global_assignment -name VERILOG_FILE ../../hdl/pdp2011/fpuregs.v
+set_global_assignment -name VERILOG_FILE ../../hdl/pdp2011/cpuregs.v
+set_global_assignment -name VERILOG_FILE ../../hdl/pdp2011/cpu_control_regs.v
+set_global_assignment -name VERILOG_FILE ../../hdl/wbc_vic.v
+set_global_assignment -name VERILOG_FILE ../../hdl/wbc_uart.v
+set_global_assignment -name VERILOG_FILE ../../hdl/wbc_rst.v
+set_global_assignment -name VERILOG_FILE ../../hdl/sdspi.v
+set_global_assignment -name VERILOG_FILE ../../hdl/rk11.v
+set_global_assignment -name VERILOG_FILE "../../hdl/common-config.v"
+set_global_assignment -name MIF_FILE ../../rom/m9312/bootrom.mif
+set_global_assignment -name QIP_FILE "ip-components/baseram.qip"
+set_global_assignment -name VERILOG_FILE "/mnt/PROJECTS/_FPGA/QMTECH/EP4CGX150/dvk-fpga/board/EP4CGX150/sram.v"
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
