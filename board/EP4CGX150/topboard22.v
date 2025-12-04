@@ -40,6 +40,17 @@ module topboard22 (
    output         led2,              // индикатор состояния процессора 2
    output         led3,              // индикатор состояния процессора 3
    
+   // Интерфейс SDRAM
+   output         sdram_reset,       // сброс/переинициализация SDRAM
+   output         sdram_stb,         // строб транзакции
+   output         sdram_we,          // разрешение записи
+   output [1:0]   sdram_sel,         // выбор байтов
+   input          sdram_ack,         // подтверждение транзакции
+   output [21:1]  sdram_adr,         // шина адреса
+   output [15:0]  sdram_out,         // шина данных хост -> память
+   input  [15:0]  sdram_dat,         // шина данных память -> хост  
+   input          sdram_ready,       // готовность SDRAM
+
    // интерфейс SD-карты
    output         sdcard_cs, 
    output         sdcard_mosi, 
@@ -123,7 +134,7 @@ wire pp11_irq, pp11_iack ;
 wire lp11_irq, lp11_iack ;
 
 wire global_reset;   // повторитель кнопки сброса
-wire sdram_ready ;
+//wire sdram_ready ;
 wire [8:0] vector;      // передаваемый процессору вектор прерывания
 wire [15:0] irq4_ivec;  // выход вектора приоритета 4
 wire [15:0] irq5_ivec;  // выход вектора приоритета 5
@@ -184,8 +195,14 @@ wbc_rst reset
 //*********************************************
 //*  Интерфейс к модулю SDRAM
 //*********************************************
+	assign sdram_reset=global_reset;       // сигнал сброса модуля SDRAM
+	assign sdram_we=wb_we;                 // признак транзакции записи
+	assign sdram_sel=wb_sel;               // выбор байтов
+	assign sdram_adr=wb_adr[21:1];         // шина адреса
+	assign sdram_out=wb_out;               // выходная шина данных
+
 // Строб SDRAM                          
-	wire sdram_stb =
+	assign sdram_stb =
 	`ifdef RAM256
 		(cpu_ram_stb && (wb_adr[21:18] == 4'b0000)); // обрезка памяти до 256К
 	`elsif RAM1M	
@@ -194,22 +211,6 @@ wbc_rst reset
 		cpu_ram_stb;   // полные 4М памяти
 	`endif
 	
-	wire sdram_ack ;
-	wire [15:0] sdram_dat;
-
-	sram ram(
-		.clk_p(clk_p),
-		.sdram_reset(global_reset),
-		.sdram_stb(sdram_stb),
-		.sdram_we(wb_we),
-		.sdram_sel(wb_sel),
-		.sdram_adr(wb_adr[21:1]),
-		.sdram_out(wb_out),
-		.sdram_ack(sdram_ack),
-		.sdram_dat(sdram_dat),
-		.sdram_ready(sdram_ready)
-	) ;
-
 //*****************************************************************************
 //* Диспетчер доступа к общей шине по запросу от разных мастеров (арбитр DMA)
 //*****************************************************************************

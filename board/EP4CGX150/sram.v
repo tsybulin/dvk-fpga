@@ -16,22 +16,22 @@ module sram(
 	assign sdram_ready = 1'b1 ;  // модуль всегда готов
 
 	wire ramsel0 = sdram_adr[21:17] == 5'b00000 ;
-	wire ramsel1 = sdram_adr[21:17] == 5'b00001 ;
-	wire ramsel2 = sdram_adr[21:17] == 5'b00010 ;
-	wire ramsel3 = sdram_adr[21:17] == 5'b00011 ;
-	wire ramsel4 = sdram_adr[21:17] == 5'b00100 ;
+//	wire ramsel1 = sdram_adr[21:17] == 5'b00001 ;
+//	wire ramsel2 = sdram_adr[21:17] == 5'b00010 ;
+//	wire ramsel3 = sdram_adr[21:17] == 5'b00011 ;
+//	wire ramsel4 = sdram_adr[21:17] == 5'b00100 ;
 	
 	wire [15:0] sdram_dat_0 ;
-	wire [15:0] sdram_dat_1 ;
-	wire [15:0] sdram_dat_2 ;
-	wire [15:0] sdram_dat_3 ;
-	wire [15:0] sdram_dat_4 ;
+//	wire [15:0] sdram_dat_1 ;
+//	wire [15:0] sdram_dat_2 ;
+//	wire [15:0] sdram_dat_3 ;
+//	wire [15:0] sdram_dat_4 ;
 
 	assign sdram_dat 	= (ramsel0 ? sdram_dat_0 : 16'd0)
-							| (ramsel1 ? sdram_dat_1 : 16'd0)
-							| (ramsel2 ? sdram_dat_2 : 16'd0)
-							| (ramsel3 ? sdram_dat_3 : 16'd0)
-							| (ramsel4 ? sdram_dat_4 : 16'd0)
+//							| (ramsel1 ? sdram_dat_1 : 16'd0)
+//							| (ramsel2 ? sdram_dat_2 : 16'd0)
+//							| (ramsel3 ? sdram_dat_3 : 16'd0)
+//							| (ramsel4 ? sdram_dat_4 : 16'd0)
 							;
 
 	// Модуль altsyncram размером 64К
@@ -45,53 +45,59 @@ module sram(
 		.q(sdram_dat_0)
    ) ;
 
-	baseram ram1 (
-		.address(sdram_adr[16:1]),
-		.byteena(sdram_sel),
-		.clock(clk_p),
-		.data(sdram_out),
-		.rden(sdram_rd && ramsel1),
-		.wren(sdram_wr && ramsel1),
-		.q(sdram_dat_1)
-   ) ;
-
-	baseram ram2 (
-		.address(sdram_adr[16:1]),
-		.byteena(sdram_sel),
-		.clock(clk_p),
-		.data(sdram_out),
-		.rden(sdram_rd && ramsel2),
-		.wren(sdram_wr && ramsel2),
-		.q(sdram_dat_2)
-   ) ;
-
-	baseram ram3 (
-		.address(sdram_adr[16:1]),
-		.byteena(sdram_sel),
-		.clock(clk_p),
-		.data(sdram_out),
-		.rden(sdram_rd && ramsel3),
-		.wren(sdram_wr && ramsel3),
-		.q(sdram_dat_3)
-   ) ;
-
-	baseram ram4 (
-		.address(sdram_adr[16:1]),
-		.byteena(sdram_sel),
-		.clock(clk_p),
-		.data(sdram_out),
-		.rden(sdram_rd && ramsel4),
-		.wren(sdram_wr && ramsel4),
-		.q(sdram_dat_4)
-   ) ;
+//	baseram ram1 (
+//		.address(sdram_adr[16:1]),
+//		.byteena(sdram_sel),
+//		.clock(clk_p),
+//		.data(sdram_out),
+//		.rden(sdram_rd && ramsel1),
+//		.wren(sdram_wr && ramsel1),
+//		.q(sdram_dat_1)
+//   ) ;
+//
+//	baseram ram2 (
+//		.address(sdram_adr[16:1]),
+//		.byteena(sdram_sel),
+//		.clock(clk_p),
+//		.data(sdram_out),
+//		.rden(sdram_rd && ramsel2),
+//		.wren(sdram_wr && ramsel2),
+//		.q(sdram_dat_2)
+//   ) ;
+//
+//	baseram ram3 (
+//		.address(sdram_adr[16:1]),
+//		.byteena(sdram_sel),
+//		.clock(clk_p),
+//		.data(sdram_out),
+//		.rden(sdram_rd && ramsel3),
+//		.wren(sdram_wr && ramsel3),
+//		.q(sdram_dat_3)
+//   ) ;
+//
+//	baseram ram4 (
+//		.address(sdram_adr[16:1]),
+//		.byteena(sdram_sel),
+//		.clock(clk_p),
+//		.data(sdram_out),
+//		.rden(sdram_rd && ramsel4),
+//		.wren(sdram_wr && ramsel4),
+//		.q(sdram_dat_4)
+//   ) ;
 
 	// формирователь сигнала подверждения транзакции
-	reg [1:0]dack ;
-	assign sdram_ack = sdram_stb & (dack[1]) ;
+	reg [6:0]dack ;
+//	assign sdram_ack = sdram_stb & (dack[1]) ;
+	assign sdram_ack = sdram_stb & (dack[6]) ; // slow SRAM down to SDRAM
 	
 	always @ (posedge clk_p)  begin
 		dack[0] <= sdram_stb;
 		dack[1] <= sdram_stb & dack[0];
+		dack[2] <= sdram_stb & dack[1];
+		dack[3] <= sdram_stb & dack[2];
+		dack[4] <= sdram_stb & dack[3];
+		dack[5] <= sdram_stb & dack[4];
+		dack[6] <= sdram_stb & dack[5];
 	end
 
 
