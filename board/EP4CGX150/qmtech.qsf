@@ -81,11 +81,6 @@ set_location_assignment PIN_AC21 -to irps_txd
 set_location_assignment PIN_AD23 -to rst_n
 set_location_assignment PIN_AF25 -to button[0]
 set_location_assignment PIN_AD21 -to button[1]
-set_location_assignment PIN_AF21 -to led[0]
-set_location_assignment PIN_AF19 -to led[1]
-set_location_assignment PIN_AD19 -to led[2]
-set_location_assignment PIN_AF18 -to led[3]
-set_location_assignment PIN_AD18 -to led[4]
 set_location_assignment PIN_AE23 -to sdcard_cs
 set_location_assignment PIN_AF20 -to sdcard_miso
 set_location_assignment PIN_AE22 -to sdcard_mosi
@@ -156,8 +151,10 @@ set_location_assignment PIN_L24 -to DRAM_ADDR[11]
 set_location_assignment PIN_K23 -to DRAM_ADDR[12]
 
 
+set_location_assignment PIN_AF21 -to led2812
 set_global_assignment -name VERILOG_FILE qmtech.v
 set_global_assignment -name VERILOG_FILE config.v
+set_global_assignment -name VERILOG_FILE ws2812.v
 set_global_assignment -name VERILOG_FILE sram.v
 set_global_assignment -name VERILOG_FILE "ip-components/sdram/sdram_wr_data.v"
 set_global_assignment -name VERILOG_FILE "ip-components/sdram/sdram_cmd.v"
@@ -189,6 +186,7 @@ set_global_assignment -name VERILOG_FILE ../../hdl/wbc_uart.v
 set_global_assignment -name VERILOG_FILE ../../hdl/wbc_rst.v
 set_global_assignment -name VERILOG_FILE ../../hdl/sdspi.v
 set_global_assignment -name VERILOG_FILE ../../hdl/rk11.v
+set_global_assignment -name VERILOG_FILE ../../hdl/rh70.v
 set_global_assignment -name VERILOG_FILE "../../hdl/common-config.v"
 set_global_assignment -name MIF_FILE ../../rom/m9312/bootrom.mif
 set_global_assignment -name QIP_FILE "ip-components/baseram.qip"

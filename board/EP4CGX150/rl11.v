@@ -1,10 +1,10 @@
 /*
-	128	words per sector
+	128	words per sector (256 bytes)
 	 40	sectors per surface
 	  2	surfaces per cylinder
 	512	cylinders per drive (RL02)
 	
-	===   10_485_760 bytes per drive, 4096 sectors per drive
+	===   10_485_760 bytes per drive, 40960 sectors per drive
 */
 
 module rl11(

@@ -102,9 +102,9 @@ wire [15:0] cpu_stack_limit;
 // индикация состояния
 wire iwait;
 wire run;
-assign led3= ~(cons_map18 | cons_map22);
-assign led2=~run;
-assign led1=~iwait;
+assign led3 = cons_map18 | cons_map22 ;
+assign led2 = run ;
+assign led1 = iwait;
 
 // сброс системы
 assign      sys_init = bus_reset;
@@ -436,7 +436,7 @@ reg tirq_prev_state;  // состояние таймера в предыдуще
 // чтение регистра таймера
 //                           7           6
 assign kw11l_dat = {8'o0, timer_rdy, timer_ie, 6'o0};
-assign led_timer=~timer_ie;
+assign led_timer = timer_ie;
 
 always @ (posedge clk_p) 
   // сброс системы

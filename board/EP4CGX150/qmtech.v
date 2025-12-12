@@ -10,8 +10,8 @@ module qmtech(
 	input					clk50,
 	input					rst_n,
 	input 		[1:0] button,
-	input			[2:0]	sw,           // переключатели конфигурации
-	output		[4:0]	led,          // индикаторные светодиоды   
+	input			[2:0]	sw,			// переключатели конфигурации
+	output				led2812,		//	индикаторы состояния
 
    // Интерфейс SDRAM
    inout  [15:0]  DRAM_DQ,      //   SDRAM Data bus 16 Bits
@@ -52,11 +52,11 @@ module qmtech(
 	//********************************************
 	wire disk_led, timer_led, led2, led1, led3 ;
 
-	assign led[0] = disk_led ;    // запрос обмена диска 
-	assign led[1] = ~led1 ;      // Индикатор состояния процессора 1
-	assign led[2] = ~led2 ;      // Индикатор состояния процессора 2
-	assign led[3] = ~led3 ;      // Индикатор состояния процессора 3
-	assign led[4] = ~timer_led ; // индикация включения таймера  
+//	assign led[0] = disk_led ;    // запрос обмена диска 
+//	assign led[1] = ~led1 ;      // Индикатор состояния процессора 1
+//	assign led[2] = ~led2 ;      // Индикатор состояния процессора 2
+//	assign led[3] = ~led3 ;      // Индикатор состояния процессора 3
+//	assign led[4] = ~timer_led ; // индикация включения таймера
 
 	//************************************************
 	//* тактовый генератор 
@@ -71,6 +71,12 @@ module qmtech(
 		.c2(clkcons),   // console 1MHz
 		.c3(clk_n),		 // // основная тактовая частота, инверсная фаза
 		.locked(clkrdy) // флаг готовности PLL
+	) ;
+
+	ws2812 leds(
+		.clk(clk_p),
+		.led({disk_led, led3, led1, timer_led, led2}),
+		.led2812(led2812)
 	) ;
 
 	reg [1:0] slow_filter ;
