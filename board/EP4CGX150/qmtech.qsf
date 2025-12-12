@@ -114,10 +114,57 @@ set_location_assignment PIN_A4 -to cons_ledrow[2]
 set_location_assignment PIN_B4 -to cons_ledrow[3]
 set_location_assignment PIN_B5 -to cons_ledrow[4]
 set_location_assignment PIN_A7 -to cons_ledrow[5]
+
+set_location_assignment PIN_G25 -to DRAM_WE_N
+set_location_assignment PIN_H24 -to DRAM_UDQM
+set_location_assignment PIN_H25 -to DRAM_RAS_N
+set_location_assignment PIN_F26 -to DRAM_LDQM
+set_location_assignment PIN_B25 -to DRAM_DQ[0]
+set_location_assignment PIN_B26 -to DRAM_DQ[1]
+set_location_assignment PIN_C25 -to DRAM_DQ[2]
+set_location_assignment PIN_C26 -to DRAM_DQ[3]
+set_location_assignment PIN_D25 -to DRAM_DQ[4]
+set_location_assignment PIN_D26 -to DRAM_DQ[5]
+set_location_assignment PIN_E25 -to DRAM_DQ[6]
+set_location_assignment PIN_E26 -to DRAM_DQ[7]
+set_location_assignment PIN_H23 -to DRAM_DQ[8]
+set_location_assignment PIN_G24 -to DRAM_DQ[9]
+set_location_assignment PIN_G22 -to DRAM_DQ[10]
+set_location_assignment PIN_F24 -to DRAM_DQ[11]
+set_location_assignment PIN_F23 -to DRAM_DQ[12]
+set_location_assignment PIN_E24 -to DRAM_DQ[13]
+set_location_assignment PIN_D24 -to DRAM_DQ[14]
+set_location_assignment PIN_C24 -to DRAM_DQ[15]
+set_location_assignment PIN_H26 -to DRAM_CS_N
+set_location_assignment PIN_E22 -to DRAM_CLK
+set_location_assignment PIN_K24 -to DRAM_CKE
+set_location_assignment PIN_G26 -to DRAM_CAS_N
+set_location_assignment PIN_J25 -to DRAM_BA_0
+set_location_assignment PIN_J26 -to DRAM_BA_1
+set_location_assignment PIN_L25 -to DRAM_ADDR[0]
+set_location_assignment PIN_L26 -to DRAM_ADDR[1]
+set_location_assignment PIN_M25 -to DRAM_ADDR[2]
+set_location_assignment PIN_M26 -to DRAM_ADDR[3]
+set_location_assignment PIN_N22 -to DRAM_ADDR[4]
+set_location_assignment PIN_N23 -to DRAM_ADDR[5]
+set_location_assignment PIN_N24 -to DRAM_ADDR[6]
+set_location_assignment PIN_M22 -to DRAM_ADDR[7]
+set_location_assignment PIN_M24 -to DRAM_ADDR[8]
+set_location_assignment PIN_L23 -to DRAM_ADDR[9]
+set_location_assignment PIN_K26 -to DRAM_ADDR[10]
+set_location_assignment PIN_L24 -to DRAM_ADDR[11]
+set_location_assignment PIN_K23 -to DRAM_ADDR[12]
+
+
 set_global_assignment -name VERILOG_FILE qmtech.v
 set_global_assignment -name VERILOG_FILE config.v
-set_global_assignment -name QIP_FILE "ip-components/pll.qip"
 set_global_assignment -name VERILOG_FILE sram.v
+set_global_assignment -name VERILOG_FILE "ip-components/sdram/sdram_wr_data.v"
+set_global_assignment -name VERILOG_FILE "ip-components/sdram/sdram_cmd.v"
+set_global_assignment -name VERILOG_FILE "ip-components/sdram/sdram_top.v"
+set_global_assignment -name VERILOG_FILE "ip-components/sdram/sdram_para.v"
+set_global_assignment -name VERILOG_FILE "ip-components/sdram/sdram_ctrl.v"
+set_global_assignment -name QIP_FILE "ip-components/pll.qip"
 set_global_assignment -name MIF_FILE bootmon.mif
 set_global_assignment -name VERILOG_FILE "ip-components/bootrom.v"
 set_global_assignment -name QIP_FILE "ip-components/sectorbuf.qip"
@@ -145,5 +192,4 @@ set_global_assignment -name VERILOG_FILE ../../hdl/rk11.v
 set_global_assignment -name VERILOG_FILE "../../hdl/common-config.v"
 set_global_assignment -name MIF_FILE ../../rom/m9312/bootrom.mif
 set_global_assignment -name QIP_FILE "ip-components/baseram.qip"
-set_global_assignment -name VERILOG_FILE "/mnt/PROJECTS/_FPGA/QMTECH/EP4CGX150/dvk-fpga/board/EP4CGX150/sram.v"
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
