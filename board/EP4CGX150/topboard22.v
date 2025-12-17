@@ -405,9 +405,8 @@ rk11 rkdisk (
    .sdmode(`RK_sdmode),           // режим ведущего-ведомого
    
 // Адрес массива дисков на карте
-   .start_offset({1'b0,sw_diskbank,22'h0})
-
-   ); 
+   .start_offset({1'b0, sw_diskbank, 22'h0})
+) ; 
 
 `else 
 assign rk11_ack=1'b0;
@@ -462,7 +461,7 @@ rl11 rldisk(
    .sdreq(rl11_sdreq),
    .sdack(rl11_sdack),
 
-   .start_offset({1'b0, sw_diskbank, 22'hc000})
+   .start_offset({1'b0, sw_diskbank, 22'h9840})
 ) ;
 
 wire [21:0] rh70_dma_adr ;
@@ -509,7 +508,7 @@ rh70 db_disk (
    .sdmode(1'b0),           // режим ведущего-ведомого
    
 // Адрес массива дисков на карте
-   .start_offset({1'b0, sw_diskbank, 22'h34200})
+   .start_offset({1'b0, sw_diskbank, 22'h31908})
 ) ;
 
 
@@ -574,7 +573,7 @@ pr11 paper_reader(
    .sdack(pr11_sdack),
    
 // Адрес массива дисков на карте
-   .start_offset({1'b0, sw_diskbank, 22'h34000})
+   .start_offset({1'b0, sw_diskbank, 22'h31840})
 ) ;
 
 pp11 paper_punch(
@@ -603,7 +602,7 @@ pp11 paper_punch(
    .sdack(pp11_sdack),
    
 // Адрес массива дисков на карте
-   .start_offset({1'b0, sw_diskbank, 22'h34000})
+   .start_offset({1'b0, sw_diskbank, 22'h31840})
 ) ;
 
 lp11 printer(
