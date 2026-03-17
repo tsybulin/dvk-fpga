@@ -77,11 +77,11 @@ set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to i2c_SDA
 set_location_assignment PIN_C11 -to irps_rxd
 set_location_assignment PIN_A12 -to irps_txd
 set_location_assignment PIN_AD23 -to rst_n
-set_location_assignment PIN_B4 -to button[0]
-set_location_assignment PIN_C5 -to button[1]
-set_location_assignment PIN_A3 -to sw[0]
-set_location_assignment PIN_B2 -to sw[1]
-set_location_assignment PIN_D1 -to sw[2]
+set_location_assignment PIN_D1 -to button[0]
+set_location_assignment PIN_B2 -to button[1]
+set_location_assignment PIN_C5 -to sw[0]
+set_location_assignment PIN_A3 -to sw[1]
+set_location_assignment PIN_B4 -to sw[2]
 
 set_location_assignment PIN_G25 -to DRAM_WE_N
 set_location_assignment PIN_H24 -to DRAM_UDQM
