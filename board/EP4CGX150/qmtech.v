@@ -62,6 +62,7 @@ module qmtech(
 	//* тактовый генератор 
 	//************************************************
 	wire clk_p, clk_n, sdclock, clkrdy, clkcons ;
+	wire [2:0] cons_dispreg_leds ;
 
 	pll pll1 (
 		.inclk0(clk50),
@@ -75,7 +76,7 @@ module qmtech(
 
 	ws2812 leds(
 		.clk(clk_p),
-		.led({disk_led, led3, led1, timer_led, led2}),
+		.led({cons_dispreg_leds[0], cons_dispreg_leds[1], cons_dispreg_leds[2], disk_led, led3, led1, timer_led, led2}),
 		.led2812(led2812)
 	) ;
 
@@ -244,6 +245,7 @@ module qmtech(
 		.cons_row(cons_row),
 		.cons_col(cons_col),
 		.cons_ledrow(cons_ledrow),
+		.cons_dispreg_leds(cons_dispreg_leds),
 		
 		.i2c_SDA(i2c_SDA),
 		.i2c_SCL(i2c_SCL)

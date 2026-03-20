@@ -66,6 +66,7 @@ module topboard22 (
 	output 	[2:0]		cons_row,
 	inout		[11:0]	cons_col,
 	output	[5:0]		cons_ledrow,
+	output	[2:0]		cons_dispreg_leds,
 
 	inout					i2c_SDA,		//SDA line
 	inout					i2c_SCL		//SCL line
@@ -300,7 +301,8 @@ assign dma_req = rk11_dma_req | rl11_dma_req | rh70_dma_req | cons_dma_req ;
 	
 	.cons_row(cons_row),
 	.cons_col(cons_col),
-	.cons_ledrow(cons_ledrow)
+	.cons_ledrow(cons_ledrow),
+	.cons_dispreg_leds(cons_dispreg_leds)
 );
 
 //**********************************************

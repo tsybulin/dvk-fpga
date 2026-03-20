@@ -57,7 +57,8 @@ module pdp2011 (
 	output	[3:0]		cons_sigo,
 	output 	[2:0]		cons_row,
 	inout		[11:0]	cons_col,
-	output	[5:0]		cons_ledrow
+	output	[5:0]		cons_ledrow,
+	output	[2:0]		cons_dispreg_leds
 );   
    
 //==========================================================================================
@@ -366,7 +367,8 @@ mmu mmu1(
 		
 		.cons_row(cons_row),
 		.cons_col(cons_col),
-		.cons_ledrow(cons_ledrow)
+		.cons_ledrow(cons_ledrow),
+		.cons_dispreg_leds(cons_dispreg_leds)
 	) ;
 
 //*******************************************

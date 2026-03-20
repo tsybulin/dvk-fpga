@@ -32,7 +32,8 @@ module console #(
 	
 	output 	reg	[2:0]		cons_row,
 	inout		reg	[11:0]	cons_col,
-	output	reg	[5:0]		cons_ledrow
+	output	reg	[5:0]		cons_ledrow,
+	output			[2:0]		cons_dispreg_leds
 ) ;
 
 `ifdef bootrom_module
@@ -72,6 +73,8 @@ module console #(
 
 	reg [15:0] display_reg ;
 	reg [15:0] data_reg ;
+	
+	assign cons_dispreg_leds = display_reg[2:0] ;
 
 	always @(posedge clk) begin
 		pc_r <= pc_ff ;

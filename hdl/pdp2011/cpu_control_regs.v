@@ -200,12 +200,11 @@ always @(posedge wb_clk_i) begin
                            if (bus_read_req == 1'b1)   wb_dat_o <= {16{1'b0}} ; 
                      end
             // 17 777 750
-            4'b0100 :
-                     begin
-                           if (bus_read_req == 1'b1)  wb_dat_o <= dummyreg; 
-                            if (we) dummyreg[7:0] <= wb_dat_i[7:0];
-                            if (wo) dummyreg[15:8] <= wb_dat_i[15:8];
-                     end
+            4'b0100 :	begin
+									if (bus_read_req == 1'b1)  wb_dat_o <= 16'b000000_1_1_0101_0_10_1 ; 
+                           if (we) dummyreg[7:0] <= wb_dat_i[7:0];
+                           if (wo) dummyreg[15:8] <= wb_dat_i[15:8];
+								end
             // 17 777 746
             4'b0011 :
                      begin

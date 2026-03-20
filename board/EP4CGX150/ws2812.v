@@ -1,10 +1,10 @@
 module ws2812(
     input               clk,
-    input       [4:0]   led,
+    input       [7:0]   led,
     output reg          led2812
 ) ;
 
-    localparam WS2812_WIDTH = 120 ;
+    localparam WS2812_WIDTH = 192 ;
 
     localparam RED      = 24'h001000 ;
     localparam GREEN    = 24'h000008;
@@ -13,7 +13,10 @@ module ws2812(
     localparam WHITE    = 24'h080808 ;
     localparam BLACK    = 24'd0 ;
     
-    wire [119:0] led_data = {
+    wire [191:0] led_data = {
+		  led[7] ? RED		: BLACK,
+		  led[6] ? RED		: BLACK,
+		  led[5] ? RED		: BLACK,
         led[4] ? BLUE   : BLACK,
         led[3] ? YELLOW : BLACK,
         led[2] ? YELLOW : BLACK,
