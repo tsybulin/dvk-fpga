@@ -86,7 +86,7 @@ file  - имя файла для записи извлекаемого обра�
     buf[1] = 0xFF ;
 
     cardoffset = bank * banksize + doffset + unit * usize ;
-    fseek(card, (cardoffset)*512, SEEK_SET) ;
+    fseek(card, cardoffset*512UL, SEEK_SET) ;
 
     while (fread(buf, 1, 1, in) == 1) {
         fwrite(buf, 1, 2, card) ;

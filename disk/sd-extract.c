@@ -81,7 +81,7 @@ file  - имя файла для записи извлекаемого обра�
     printf("* Стартовый блок: %xh\n",cardoffset);
     printf("* Размер образа : %xh\n",usize);
     // вычитываем образ диска с карты
-    fseek(card,(cardoffset)*512,SEEK_SET);
+    fseek(card,cardoffset*512UL,SEEK_SET);
     fread(buf,512,usize,card);
     fclose(card);
 

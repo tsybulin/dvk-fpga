@@ -87,10 +87,10 @@ file  - имя файла для записи извлекаемого обра�
     printf("* Размер образа : %xh\n",usize);
     
     // вычитываем образ диска с карты
-    fseek(card, (cardoffset)*512, SEEK_SET);
+    fseek(card, cardoffset*512UL, SEEK_SET);
     
     while (fread(buf, 1, 2, card) == 2) {
-        if (buf[1] != 0xFF) {
+        if ((buf[1] & 0xFF) != 0xFF) {
             break ;
         }
 

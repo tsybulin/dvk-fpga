@@ -105,8 +105,8 @@ file  - имя файла для записи извлекаемого обра�
 
     // Запись образа на карту
     cardoffset=bank*banksize+doffset+unit*usize;
-    printf("* Стартовый блок: %xh     Размер: %xh\n",cardoffset,usize);
-    fseek(card,(cardoffset)*512,SEEK_SET);
+    printf("* Стартовый блок: %lxh     Размер: %xh\n",cardoffset,usize);
+    fseek(card,cardoffset*512UL,SEEK_SET);
     fwrite(buf,512,usize,card);
     fclose(card);
     free(buf);

@@ -194,7 +194,6 @@ module qmtech(
 	
 	assign sdram_ack = (dram_stb & (sdr_rd_ack | sdr_wr_ack))  | (sram_stb & sram_ack) ;
 
-	
 	//************************************
 	//* Соединительная плата
 	//************************************
