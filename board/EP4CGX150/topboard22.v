@@ -99,7 +99,7 @@ wire uart1_stb ;
 wire uart2_stb ;
 wire rk11_stb ;
 wire rh70_stb ;
-
+wire rx11_stb ;
 wire bus_stb;
 
 // линии подтверждения обмена, исходяшие из устройства
@@ -108,6 +108,7 @@ wire uart2_ack ;
 wire rk11_ack ;
 wire rl11_ack ;
 wire rh70_ack ;
+wire rx11_ack ;
 wire kw11p_ack ;
 wire pr11_ack ;
 wire pp11_ack ;
@@ -118,6 +119,7 @@ wire [15:0] uart1_dat;
 wire [15:0] uart2_dat;
 wire [15:0] rk11_dat;
 wire [15:0] rl11_dato ;
+wire [15:0] rx11_dato ;
 wire [15:0] rh70_dato ;
 wire [15:0] kw11p_dato ;
 wire [15:0] pr11_dato ;
@@ -133,7 +135,8 @@ wire uart1_rx_irq, uart1_rx_iack;
 wire rk11_irq, rk11_iack;
 wire rl11_irq, rl11_iack ;
 wire rh70_irq, rh70_iack ;
-wire kw11p_irq, kw11p_iack;
+wire rx11_irq, rx11_iack ;
+wire kw11p_irq, kw11p_iack ;
 wire pr11_irq, pr11_iack ;
 wire pp11_irq, pp11_iack ;
 wire lp11_irq, lp11_iack ;
@@ -167,6 +170,10 @@ wire         rh70_mosi ;    // mosi от DB
 wire         rh70_cs ;      // cs от DB
 wire         rh70_sclk ;
 
+wire         rx11_mosi ;       // mosi от RX
+wire         rx11_cs ;         // cs от RX
+wire         rx11_sclk ;
+
 wire         pr11_mosi;
 wire         pr11_cs;
 wire         pr11_sclk;
@@ -176,14 +183,16 @@ wire         pp11_cs;
 wire         pp11_sclk;
 
 // Сигналы диспетчера доступа к SD-карте
-wire        rk_sdreq;       // запрос доступа
-reg         rk_sdack;       // разрешение доступа
+wire        rk_sdreq ;       // запрос доступа
+reg         rk_sdack ;       // разрешение доступа
 wire        rh70_sdreq ;
 reg         rh70_sdack ; 
-wire        pr11_sdreq;       // запрос доступа
-reg         pr11_sdack;       // разрешение доступа
-wire        pp11_sdreq;       // запрос доступа
-reg         pp11_sdack;       // разрешение доступа
+wire        rx11_sdreq ;
+reg         rx11_sdack ; 
+wire        pr11_sdreq ;       // запрос доступа
+reg         pr11_sdack ;       // разрешение доступа
+wire        pp11_sdreq ;       // запрос доступа
+reg         pp11_sdack ;       // разрешение доступа
 
 // основная тактовая частота шины
 assign wb_clk=clk_p;
@@ -513,6 +522,38 @@ rh70 db_disk (
    .start_offset({1'b0, sw_diskbank, 22'h31908})
 ) ;
 
+rx11 rxdisk (
+// шина wishbone
+   .wb_clk_i(wb_clk),      // тактовая частота шины
+   .wb_rst_i(sys_init),    // сброс
+   .wb_adr_i(wb_adr[1:0]), // адрес 
+   .wb_dat_i(wb_out),      // входные данные
+   .wb_dat_o(rx11_dato),      // выходные данные
+   .wb_cyc_i(1'b1),      // начало цикла шины
+   .wb_we_i(wb_we),        // разрешение записи (0 - чтение)
+   .wb_stb_i(rx11_stb),      // строб цикла шины
+   .wb_sel_i(wb_sel),      // выбор конкретных байтов для записи - старший, младший или оба
+   .wb_ack_o(rx11_ack),      // подтверждение выбора устройства
+
+// обработка прерывания   
+   .irq(rx11_irq),           // запрос
+   .iack(rx11_iack),         // подтверждение
+   
+   
+// интерфейс SD-карты
+   .sdcard_cs(rx11_cs), 
+   .sdcard_mosi(rx11_mosi), 
+   .sdcard_miso(sdcard_miso), 
+   .sdcard_sclk(rx11_sclk),
+
+   .sdmode(1'b0),          
+   .sdreq(rx11_sdreq),
+   .sdack(rx11_sdack),
+   .sdclock(sdclock),
+   
+// Адрес массива дисков на карте
+   .start_offset({1'b0, sw_diskbank, 22'h31908}) // Share bank space with RH70
+) ; 
 
 
 wire [15:0] toy_dato ;
@@ -626,28 +667,32 @@ lp11 printer(
 //**********************************
 //*  Диспетчер доступа к SD-карте
 //**********************************
-reg [1:0] rk_sdreq_filter;
-reg [1:0] rl11_sdreq_filter;
-reg [1:0] rh70_sdreq_filter;
-reg [1:0] pr11_sdreq_filter;
-reg [1:0] pp11_sdreq_filter;
+reg [1:0] rk_sdreq_filter ;
+reg [1:0] rl11_sdreq_filter ;
+reg [1:0] rh70_sdreq_filter ;
+reg [1:0] rx11_sdreq_filter ;
+reg [1:0] pr11_sdreq_filter ;
+reg [1:0] pp11_sdreq_filter ;
 
 // фильтрация сигналов запроса
 always @(posedge sdclock) begin
-  rk_sdreq_filter[0]=rk_sdreq;
-  rk_sdreq_filter[1]=rk_sdreq_filter[0];
+  rk_sdreq_filter[0]=rk_sdreq ;
+  rk_sdreq_filter[1]=rk_sdreq_filter[0] ;
 
-  rl11_sdreq_filter[0] = rl11_sdreq;
-  rl11_sdreq_filter[1] = rl11_sdreq_filter[0];
+  rl11_sdreq_filter[0] = rl11_sdreq ;
+  rl11_sdreq_filter[1] = rl11_sdreq_filter[0] ;
 
-  rh70_sdreq_filter[0] = rh70_sdreq;
-  rh70_sdreq_filter[1] = rh70_sdreq_filter[0];
+  rh70_sdreq_filter[0] = rh70_sdreq ;
+  rh70_sdreq_filter[1] = rh70_sdreq_filter[0] ;
 
-  pr11_sdreq_filter[0] = pr11_sdreq;
-  pr11_sdreq_filter[1] = pr11_sdreq_filter[0];
+  rx11_sdreq_filter[0] = rx11_sdreq ;
+  rx11_sdreq_filter[1] = rx11_sdreq_filter[0] ;
 
-  pp11_sdreq_filter[0] = pp11_sdreq;
-  pp11_sdreq_filter[1] = pp11_sdreq_filter[0];
+  pr11_sdreq_filter[0] = pr11_sdreq ;
+  pr11_sdreq_filter[1] = pr11_sdreq_filter[0] ;
+
+  pp11_sdreq_filter[0] = pp11_sdreq ;
+  pp11_sdreq_filter[1] = pp11_sdreq_filter[0] ;
 end  
   
 always @(posedge sdclock) begin
@@ -656,15 +701,18 @@ always @(posedge sdclock) begin
       rk_sdack <= 1'b0;
 		rl11_sdack <= 1'b0 ;
 		rh70_sdack <= 1'b0 ;
+		rx11_sdack <= 1'b0 ;
 		pr11_sdack <= 1'b0 ;
 		pp11_sdack <= 1'b0 ;
-   end else if ((rk_sdack == 1'b0) && (rl11_sdack == 1'b0) && (rh70_sdack == 1'b0) && (pr11_sdack == 1'b0) && (pp11_sdack == 1'b0)) begin // поиск контроллера, желающего доступ к карте
+   end else if ((rk_sdack == 1'b0) && (rl11_sdack == 1'b0) && (rh70_sdack == 1'b0) && (rx11_sdack == 1'b0) && (pr11_sdack == 1'b0) && (pp11_sdack == 1'b0)) begin // поиск контроллера, желающего доступ к карте
       if (rk_sdreq_filter[1] == 1'b1) // неактивное состояние - ищем источник запроса
 			rk_sdack <= 1'b1 ;
 		else if (rl11_sdreq_filter[1] == 1'b1)
 			rl11_sdack <= 1'b1 ;
 		else if (rh70_sdreq_filter[1] == 1'b1)
 			rh70_sdack <= 1'b1 ;
+		else if (rx11_sdreq_filter[1] == 1'b1)
+			rx11_sdack <= 1'b1 ;
 		else if (pr11_sdreq_filter[1] == 1'b1)
 			pr11_sdack <= 1'b1 ;
 		else if (pp11_sdreq_filter[1] == 1'b1)
@@ -676,6 +724,8 @@ always @(posedge sdclock) begin
 			rl11_sdack <= 1'b0;
 		else if ((rh70_sdack == 1'b1) && (rh70_sdreq_filter[1] == 1'b0))
 			rh70_sdack <= 1'b0;
+		else if ((rx11_sdack == 1'b1) && (rx11_sdreq_filter[1] == 1'b0))
+			rx11_sdack <= 1'b0;
 		else if ((pr11_sdack == 1'b1) && (pr11_sdreq_filter[1] == 1'b0))
 			pr11_sdack <= 1'b0;
 		else if ((pp11_sdack == 1'b1) && (pp11_sdreq_filter[1] == 1'b0))
@@ -688,6 +738,7 @@ end
 assign sdcard_mosi =
 			pp11_sdack ? pp11_mosi :
 			pr11_sdack ? pr11_mosi :
+			rx11_sdack ? rx11_mosi :
 			rh70_sdack ? rh70_mosi :
 			rl11_sdack ? rl11_mosi :
          rk_sdack   ? rk_mosi   : // RK
@@ -696,6 +747,7 @@ assign sdcard_mosi =
 assign sdcard_cs =
 			pp11_sdack ? pp11_cs :
 			pr11_sdack ? pr11_cs :
+			rx11_sdack ? rx11_cs :
 			rh70_sdack ? rh70_cs :
 			rl11_sdack ? rl11_cs :
          rk_sdack   ? rk_cs   :   // RK
@@ -704,6 +756,7 @@ assign sdcard_cs =
 assign sdcard_sclk =
 			pp11_sdack ? pp11_sclk :
 			pr11_sdack ? pr11_sclk :
+			rx11_sdack ? rx11_sclk :
 			rh70_sdack ? rh70_sclk :
 			rl11_sdack ? rl11_sclk :
          rk_sdack   ? rk_sclk   :   // RK
@@ -713,7 +766,7 @@ assign sdcard_sclk =
 //********************************************
 //* Светодиоды дисковой активности
 //********************************************
-assign disk_led = rk_sdreq | pr11_sdreq | pr11_sdreq | rl11_sdreq | rh70_sdreq ;   // запрос обмена диска
+assign disk_led = rk_sdreq | pr11_sdreq | pr11_sdreq | rl11_sdreq | rh70_sdreq | rx11_sdreq ;   // запрос обмена диска
 
 //************************************************
 //*  Контроллеры прерываний
@@ -735,7 +788,7 @@ wbc_vic #(.N(5)) vic4
 );
 
 // приоритет 5
-wbc_vic #(.N(3)) vic5
+wbc_vic #(.N(4)) vic5
 (
    .wb_clk_i(wb_clk),
    .wb_rst_i(sys_init),
@@ -743,10 +796,10 @@ wbc_vic #(.N(3)) vic5
    .wb_dat_o(irq5_ivec),
    .wb_stb_i(istb[5]),
    .wb_ack_o(br5_iack),
-//         RK11      RL11       RH70
-   .ivec({16'o220,   16'o160,   16'o254}),
-   .ireq({rk11_irq,  rl11_irq,  rh70_irq}),
-   .iack({rk11_iack, rl11_iack, rh70_iack})
+//         RK11      RL11       RH70       RX11
+   .ivec({16'o220,   16'o160,   16'o254,   16'o264}),
+   .ireq({rk11_irq,  rl11_irq,  rh70_irq,  rx11_irq}),
+   .iack({rk11_iack, rl11_iack, rh70_iack, rx11_iack})
 );
 
 // приоритет 7
@@ -844,8 +897,9 @@ assign dma_stb_ubm = (rk11_dma_state & rk11_dma_stb) | (rl11_dma_gnt & rl11_dma_
 //******************************************************************* 
 // Страница ввода-вывода
 assign uart1_stb  = bus_stb & (wb_adr[15:3] == (16'o177560 >> 3));   // ИРПС консольный (TT) - 177560-177566 
-assign rk11_stb   = bus_stb & (wb_adr[15:4] == (16'o177400 >> 4));   // RK - 177400-177416
+assign rk11_stb   = bus_stb & (wb_adr[15:4] == (16'o177400 >> 4));   // RK11 - 177400-177416
 assign rh70_stb   = bus_stb & (wb_adr[15:6] == (16'o176700 >> 6));   // RH70 - 176700-176776 для massbus-конфигураций
+assign rx11_stb   = bus_stb & (wb_adr[15:2] == (16'o177170 >> 2));   // RX11 - 177170-177172
 
 // Сигналы подтверждения - собираются через OR со всех устройств
 assign global_ack  	= sdram_ack
@@ -853,6 +907,7 @@ assign global_ack  	= sdram_ack
 							| rk11_ack
 							| rl11_ack
 							| rh70_ack
+							| rx11_ack
 							| toy_ack
 							| kw11p_ack
 							| pr11_ack
@@ -866,6 +921,7 @@ assign wb_mux =
      | (rk11_stb  ? rk11_dat    : 16'o000000)
      | (rl11_ack  ? rl11_dato   : 16'o000000)
      | (rh70_ack  ? rh70_dato   : 16'o000000)
+	  | (rx11_ack  ? rx11_dato   : 16'o000000)
      | (toy_ack   ? toy_dato    : 16'o000000)
      | (kw11p_ack ? kw11p_dato  : 16'o000000)
      | (pr11_ack  ? pr11_dato   : 16'o000000)

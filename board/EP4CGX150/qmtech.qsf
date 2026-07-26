@@ -173,6 +173,7 @@ set_global_assignment -name VERILOG_FILE pr11.v
 set_global_assignment -name VERILOG_FILE pp11.v
 set_global_assignment -name VERILOG_FILE lp11.v
 set_global_assignment -name VERILOG_FILE rl11.v
+set_global_assignment -name VERILOG_FILE ../../hdl/rx11.v
 set_global_assignment -name VERILOG_FILE topboard22.v
 set_global_assignment -name SDC_FILE qmtech.sdc
 set_global_assignment -name VERILOG_FILE ../../hdl/pdp2011.v
