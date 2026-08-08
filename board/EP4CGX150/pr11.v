@@ -27,7 +27,9 @@ module pr11(
    input                  sdclock,   
 
 // Адрес начала банка на карте
-   input [26:0]           start_offset
+   input [26:0]           start_offset,
+	output 			 		  master_sdhc,
+	input				 		  slave_sdhc
 ) ;
 
 	//***********************************************
@@ -53,6 +55,8 @@ module pr11(
 		.sdcard_addr(sdcard_addr),               // адрес блока на карте
 		.sdcard_idle(sdcard_idle),               // сигнал готовности модуля к обмену
 		.sdcard_error(sdcard_error),             // флаг ошибки
+		.master_sdhc(master_sdhc),
+		.slave_sdhc(slave_sdhc),
 
 		// сигналы управления чтением - записью
 		.sdspi_start(sdspi_start),                // строб запуска ввода вывода
@@ -217,6 +221,7 @@ module pr11(
 			sd_done <= 1'b0 ;
 			eot <= 1'b0 ;
 			sdreq <= 1'b0 ;
+			sdspi_start <= 1'b0 ;
 			sdbuf_addr <= 8'b0 ;
 			sector <= 8'b0 ;
 			sector_loaded <= 1'b0 ;

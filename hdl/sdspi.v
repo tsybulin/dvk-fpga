@@ -10,7 +10,7 @@ module sdspi (
    output          sdcard_sclk, 
    input           sdcard_miso,
    
-   output reg[3:0] sdcard_debug,       // отладочные сигналы
+   output reg[7:0] sdcard_debug,       // отладочные сигналы
 
    input[26:0]     sdcard_addr,        // адрес сектора карты
    output reg      sdcard_idle,        // признак готовности контроллера
@@ -18,11 +18,13 @@ module sdspi (
    output reg      sdspi_io_done,      // флаг окончагия чтения
    input           sdspi_write_mode,   // 0-чтение, 1-запись
    output reg      sdcard_error,       // флаг ошибки
+	output 			 master_sdhc,
+	input				 slave_sdhc,
 
    input  [7:0]    sdbuf_addr,         // адрес в буфере чтния/записи
    output [15:0]   sdbuf_dataout,      // слово, читаемое из буфера чтения
    input           sdbuf_we,           // строб записи буфера
-   input[15:0]     sdbuf_datain,       // слово, записываемое в буфер записи
+   input [15:0]    sdbuf_datain,       // слово, записываемое в буфер записи
 
    input           controller_clk,     // тактирование буферных операций - тактовый сигнал процессорной шины
    input           mode,               // режим работы: 0 - ведомый, 1 - ведущий
@@ -43,23 +45,23 @@ module sdspi (
 //***********************************
 //*    буферная память
 //***********************************
-wire [15:0] bufdata_out;
-reg sbuf_write_en;
-reg [15:0] sdbufdata;
-reg[7:0] sectorindex; 
+	wire [15:0] bufdata_out;
+	reg sbuf_write_en;
+	reg [15:0] sdbufdata;
+	reg[7:0] sectorindex; 
 
-sectorbuf sbuf(
-   .address_a(sdbuf_addr),
-   .address_b(sectorindex),
-   .clock_a(controller_clk),
-   .clock_b(sdclk),
-   .data_a(sdbuf_datain),
-   .data_b(sdbufdata),
-   .wren_a(sdbuf_we),
-   .wren_b(sbuf_write_en),
-   .q_a(sdbuf_dataout),
-   .q_b(bufdata_out)
-);
+	sectorbuf sbuf(
+		.address_a(sdbuf_addr),
+		.address_b(sectorindex),
+		.clock_a(controller_clk),
+		.clock_b(sdclk),
+		.data_a(sdbuf_datain),
+		.data_b(sdbufdata),
+		.wren_a(sdbuf_we),
+		.wren_b(sbuf_write_en),
+		.q_a(sdbuf_dataout),
+		.q_b(bufdata_out)
+	);
    
    //****************************
    // Машина состояний SDкарты
@@ -92,6 +94,9 @@ sectorbuf sbuf(
    parameter[4:0] sd_error = 25; 
    parameter[4:0] sd_idle = 26; 
    parameter[4:0] sd_waitidle = 27; 
+	parameter[4:0] sd_send_ff1 = 28 ;
+	parameter[4:0] sd_send_ff2 = 29 ;
+	parameter[4:0] sd_send_cmd2 = 30 ;
 
    reg[4:0] sd_state; 
    reg[4:0] sd_nextstate; 
@@ -105,7 +110,8 @@ sectorbuf sbuf(
    reg do_readr3; 
    reg do_readr7; 
 
-   reg[9:0] counter; 
+   reg[15:0] counter; 
+   reg[4:0] ff_counter ; 
    reg[15:0] sd_word; 
    reg[3:0] idle_filter; 
    reg[3:0] start_filter; 
@@ -119,7 +125,18 @@ sectorbuf sbuf(
    reg write_mode; 
    reg card_error; 
    reg [1:0] errcount;
-   
+	
+	localparam [1:0] CT_NONE = 2'b00 ;
+	localparam [1:0] CT_MMC  = 2'b01 ;
+	localparam [1:0] CT_SDV1 = 2'b10 ;
+	localparam [1:0] CT_SDV2 = 2'b11 ;
+	
+	reg [1:0] cardtype = CT_NONE ;
+	reg       sdhc = 1'b0 ;
+	
+	assign master_sdhc = sdhc ;
+	wire sdcard_sdhc = mode == 1'b1 ? sdhc : slave_sdhc ;
+	
 //*******************************************   
 //* Интерфейс к хост-модулю
 //*******************************************   
@@ -127,17 +144,13 @@ always @(posedge controller_clk) begin
          
          // сдвиговые регистры фильтров интерфейсных сигналов
          idle_filter <= {idle_filter[2:0], idle} ;  // фильтр сигнала готовности
-         start_filter <= {start_filter[2:0], sdspi_start} ; // фильтр строба чтения
          io_done_filter <= {io_done_filter[2:0], io_done} ;           // фильтр сигнала окончания записи
-         write_mode_filter <= {write_mode_filter[2:0], sdspi_write_mode} ; // фильтр строба записи
          card_error_filter <= {card_error_filter[2:0], card_error} ; 
          
          // сброс контроллера
          if (reset == 1'b1)  begin
             sdcard_idle <= 1'b0 ; 
-            start <= 1'b0 ; 
             sdspi_io_done <= 1'b0 ; 
-            write_mode <= 1'b0 ; 
             sdcard_error <= 1'b0 ; 
          end
          
@@ -147,17 +160,10 @@ always @(posedge controller_clk) begin
             if (idle_filter == {4{1'b0}})     sdcard_idle <= 1'b0 ; 
             else if (idle_filter == {4{1'b1}}) sdcard_idle <= 1'b1 ;
             
-            // сигнал начала чтения
-            if (start_filter == {4{1'b0}}) start <= 1'b0 ; 
-            else if (start_filter == {4{1'b1}})  start <= 1'b1 ; 
 
             // строб окончания чтения
             if (io_done_filter == {4{1'b0}}) sdspi_io_done <= 1'b0 ; 
             else if (io_done_filter == {4{1'b1}})  sdspi_io_done <= 1'b1 ; 
-
-            // сигнал начала записи
-            if (write_mode_filter == {4{1'b0}})     write_mode <= 1'b0 ; 
-            else if (write_mode_filter == {4{1'b1}})  write_mode <= 1'b1 ; 
 
             // сигнал ошибки карты
             if (card_error_filter == {4{1'b0}}) sdcard_error <= 1'b0 ; 
@@ -170,145 +176,250 @@ end
 //*******************************************   
 
 // Генератор замедленного тактирования карты - делитель на 64
-reg [5:0] sdcounter;
-always @ (posedge sdclk) sdcounter <= sdcounter + 1'b1;
+//reg [5:0] sdcounter;
+//always @ (posedge sdclk) sdcounter <= sdcounter + 1'b1;
 
 // тактовый сигнал карты
+reg sdslow; 
+//assign sdcard_sclk = sdslow ? sdclk : sdcounter[5] ;
 assign sdcard_sclk = sdclk ;
 
 //*******************************************   
 //* Обработка обмена данными с картой по SPI
 //*******************************************   
+
+initial sdcard_debug = 8'b0 ;
+
+always @(posedge sdcard_sclk) begin
+	start_filter <= {start_filter[2:0], sdspi_start} ; // фильтр строба чтения
+	write_mode_filter <= {write_mode_filter[2:0], sdspi_write_mode} ; // фильтр строба записи
+	
+	if (reset == 1'b1)  begin
+		start <= 1'b0 ; 
+		write_mode <= 1'b0 ; 
+	end else begin
+		if (start_filter == {4{1'b0}}) start <= 1'b0 ; 
+		else if (start_filter == {4{1'b1}})  start <= 1'b1 ; 
+
+		if (write_mode_filter == {4{1'b0}})     write_mode <= 1'b0 ; 
+		else if (write_mode_filter == {4{1'b1}})  write_mode <= 1'b1 ; 
+	end
+end
+
 always @(posedge sdcard_sclk)  begin
      // сброс
-         if (reset == 1'b1) begin
-               if (mode == 1'b1) begin 
-                  // режим ведущего  - переходим к инициализации карты
-                  sd_state <= sd_reset ; 
-                  idle <= 1'b0;
-                   sbuf_write_en <= 1'b0;
-               end   
-               else begin 
-                  // режим ведомого - переходим в состояние ожидания
-                  sd_state <= sd_idle;  // сразу устанавливаем полную тактовую частоту
-                  // заранее настраиваем регистры как после инициализации
-                  idle <= 1'b1 ;          
-                  do_readr7 <= 1'b0 ; 
-                  sdcard_mosi <= 1'b1 ;   // MOSI=1
-                  sdcard_cs <= 1'b0;      // CS=0
-               end
-               errcount <= 2'b00;
-               do_readr3 <= 1'b0 ; 
-               io_done <= 1'b0 ;       // снимаем флаг окончания чтения
-               card_error <= 1'b0 ;      // снимаем флаг ошибки
-               sdcard_debug <= 4'b0011 ; 
-         end
-         else  begin
-            // машина состояний карты
-            case (sd_state)
-               // начало инициализации
-               sd_reset :         
-                        begin
-                           counter <= 10'd500 ; // счетчик ожидания перед инициализацией
-                           sbuf_write_en <= 1'b0;
-                           do_readr3 <= 1'b0 ; 
-                           do_readr7 <= 1'b0 ; 
-                           sdcard_cs <= 1'b1 ;     // CS=1
-                           sdcard_mosi <= 1'b1 ;   // MOSI=1
-                           sd_state <= sd_sendcmd0 ; // следующий этап - CMD0
-//                           idle <= 1'b0 ; 
-                           sdcard_debug <= 4'b0011 ; 
-                        end
-               // Отправка cmd0
-               sd_sendcmd0 :
-                        begin
-                           if (counter != 0) counter <= counter - 1'b1 ; // выдержка перед CMD0 
-                           else  begin
-                              counter <= 10'd48 ;       // команда 48 бит
-                              sdcard_cs <= 1'b0 ;   // выбираем карту, CS=0
-                              sd_nextstate <= sd_checkcmd0 ; 
-                              sd_cmd <= 48'h400000000095; // CMD0
-                              sd_state <= sd_send_cmd ; 
-                           end 
-                        end
-               // Проверка ответа карты. 
-               // 
-               sd_checkcmd0 :
-                        begin
-                           // Ответ должен быть 01 - тогда переходим к cmd8         
-                           if (sd_r1 == 7'b0000001)  begin
-                              counter <= 10'd48 ; 
-                              sd_nextstate <= sd_checkcmd8 ; 
-                              sd_cmd <= 48'h48000001AA87 ; // CMD8
-                              do_readr7 <= 1'b1 ; 
-                              sd_state <= sd_send_cmd ; 
-                           end
-                           else  sd_state <= sd_reset ; // ошибка - неверный ответ
-                        end
-               // Проверяем ответ CMD8 
-               sd_checkcmd8 :
-                        begin
-                           sd_nextstate <= sd_checkcmd55 ; 
-                           counter <= 10'd48 ; 
-                           if (sd_r1 == 7'b0000001)  begin 
-                             sd_state <= sd_send_cmd ; 
-                             sd_cmd <= 48'h770000000065; // следующая команда - CMD55
-                           end  
-                           else  sd_state<=sd_reset;
-                        end
-               // проверка ответа на CMD55
-               sd_checkcmd55 :
-                        begin
-                           counter <= 10'd48 ; 
-                           sd_nextstate <= sd_checkacmd41 ; 
-                           if (sd_r1 == 7'b0000001)  sd_state <= sd_send_cmd ; 
-                           else sd_state <= sd_reset; 
-                           // формируем правильную команду ACMD41
-                            sd_cmd <= 48'h694000000077; // для SDHC
-                        end
-               // проверяем ответ на ACMD41
-               sd_checkacmd41 :
-                        begin
-                           if (sd_r1 == 7'b0000000) begin
-                              sd_state <= sd_idle ; // Правильный ответ - переходим к рабочему циклу обработки команд                           
-                           end   
-                           else  sd_state <= sd_checkcmd8 ;   // неправильный ответ - бесконечно повторяем acmd41
-                        end   
+	if (reset == 1'b1) begin
+		if (mode == 1'b1) begin 
+			// режим ведущего  - переходим к инициализации карты
+			sd_state <= sd_reset ; 
+			idle <= 1'b0;
+			sbuf_write_en <= 1'b0;
+			sdslow <= 1'b0;
+		end else begin 
+			// режим ведомого - переходим в состояние ожидания
+			sd_state <= sd_idle;  // сразу устанавливаем полную тактовую частоту
+			// заранее настраиваем регистры как после инициализации
+			idle <= 1'b1 ;          
+			do_readr7 <= 1'b0 ; 
+			sdcard_mosi <= 1'b1 ;   // MOSI=1
+			sdcard_cs <= 1'b0;      // CS=0
+			sdslow <= 1'b1;
+		end
+		errcount <= 2'b00;
+		do_readr3 <= 1'b0 ; 
+		io_done <= 1'b0 ;       // снимаем флаг окончания чтения
+		card_error <= 1'b0 ;      // снимаем флаг ошибки
+		sdcard_debug <= 8'b0 ; 
+	end else begin
+		case (sd_state)
+			sd_reset : begin
+				counter <= 16'd500 ; // счетчик ожидания перед инициализацией
+				sbuf_write_en <= 1'b0;
+				do_readr3 <= 1'b0 ; 
+				do_readr7 <= 1'b0 ; 
+				sdcard_cs <= 1'b1 ;     // CS=1
+				sdcard_mosi <= 1'b1 ;   // MOSI=1
+				sd_state <= sd_sendcmd0 ; // следующий этап - CMD0
+				cardtype <= CT_NONE ;
+				sdhc <= 1'b0 ;
+				sdslow <= 1'b0;
+				sdcard_debug <= 8'd1 ; 
+			end
+
+			sd_sendcmd0 : begin
+				if (counter != 0)
+					counter <= counter - 1'b1 ; // выдержка перед CMD0 
+				else begin
+					counter <= 16'd48 ;       // команда 48 бит
+					sdcard_cs <= 1'b0 ;   // выбираем карту, CS=0
+					sd_nextstate <= sd_checkcmd0 ; 
+					sd_cmd <= 48'h400000000095; // CMD0
+					sd_state <= sd_send_cmd ; 
+				end 
+			end
+
+			sd_checkcmd0 : begin
+				// Ответ должен быть 01 - тогда переходим к cmd8         
+				if (sd_r1 == 7'b0000001) begin
+					counter <= 16'd48 ; 
+					sd_nextstate <= sd_checkcmd8 ; 
+					sd_cmd <= 48'h48000001AA87 ; // CMD8
+					do_readr7 <= 1'b1 ; 
+					sd_state <= sd_send_cmd ; 
+					sdcard_debug <= 8'd2 ; 
+				end else begin
+					sd_state <= sd_reset ; // ошибка - неверный ответ
+				end
+			end
+
+			sd_checkcmd1 : begin
+				counter <= 16'd48 ;
+				if (sd_r1 == 7'b0000001) begin
+					sd_cmd <= 48'h4100000000F9 ;
+					sd_state <= sd_send_cmd ;
+					sd_nextstate <= sd_checkcmd1 ;
+				end else if (sd_r1 == 7'b0000000) begin
+					sd_cmd <= 48'h500000020001 ;
+					sd_state <= sd_send_cmd ;
+					sd_nextstate <= sd_checkcmd16 ;
+				end else
+					sd_state <= sd_reset ; 
+			end
+
+			sd_checkcmd8 : begin
+				sd_nextstate <= sd_checkcmd55 ; 
+				counter <= 16'd48 ; 
+				sd_state <= sd_send_cmd ; 
+				sd_cmd <= 48'h770000000065 ; // следующая команда - CMD55
+				sdcard_debug <= 8'd3 ; 
+				if (sd_r1 == 7'b0000001) begin
+					if (sd_r7[11:8] != 4'b0001 || sd_r7[7:0] != 8'hAA) begin
+						sd_state <= sd_reset ;
+					end else begin
+						cardtype <= CT_SDV2 ;
+					end
+				end else begin
+					cardtype <= CT_SDV1 ;
+				end
+			end
+
+			sd_checkcmd16 : begin
+				if (sd_r1 == 7'b0000000) begin
+					sd_state <= sd_idle ;
+					sdslow <= 1'b1;
+				end else
+					sd_state <= sd_reset; 
+			end
+					
+			sd_checkacmd41 : begin
+				counter <= 16'd48 ;
+				if (sd_r1 == 7'b0000001) begin	// BUSY
+					sd_cmd <= 48'h770000000065 ;
+					sd_nextstate <= sd_checkcmd55 ;
+					sd_state <= sd_send_cmd ;
+				end else if (sd_r1 == 7'b0000000) begin
+					if (cardtype == CT_SDV2) begin
+						sd_cmd <= 48'h7A00000000FD ;
+						sd_state <= sd_send_cmd ;
+						sd_nextstate <= sd_checkcmd58 ;
+						do_readr3 <= 1'b1 ;
+						sdcard_debug <= 8'd5 ; 
+					end else begin
+						sd_cmd <= 48'h500000020001 ; // set block size 512
+						sd_state <= sd_send_cmd ;
+						sd_nextstate <= sd_checkcmd16 ;
+					end
+				end else begin
+					sd_cmd <= 48'h4100000000F9 ;
+					sd_nextstate <= sd_checkcmd1 ;
+					sd_state <= sd_send_cmd ;
+				end
+			end   
+
+			sd_checkcmd55 : begin
+				counter <= 16'd48 ; 
+				sdcard_debug <= 8'd4 ; 
+				if (sd_r1 == 7'b0000001) begin
+					if (cardtype == CT_SDV2)
+						sd_cmd <= 48'h694000000077 ;
+					else
+						sd_cmd <= 48'h6900000000E5 ;
+
+					sd_nextstate <= sd_checkacmd41 ; 
+					sd_state <= sd_send_cmd ; 
+				end else if (sd_r1[2] == 1'b1) begin
+					cardtype <= CT_MMC ;
+					sd_cmd <= 48'h4100000000F9 ;
+					sd_nextstate <= sd_checkcmd1 ; 
+					sd_state <= sd_send_cmd ; 
+				end else begin
+					sd_state <= sd_reset; 
+				end
+			end
+								
+			sd_checkcmd58 : begin
+				if (sd_r1 == 7'b0000000) begin
+					if (sd_r3[30] == 1'b1) begin
+						sdhc <= 1'b1 ;
+						sdcard_debug <= 8'd6 ; 
+						sd_state <= sd_idle ;
+						sdslow <= 1'b1;
+					end else begin
+						sdhc <= 1'b0;
+						counter <= 16'd48 ;
+						sd_cmd <= 48'h500000020001; // set block size 512
+						sd_state <= sd_send_cmd ;
+						sd_nextstate <= sd_checkcmd16 ;
+						sdcard_debug <= 8'd7 ; 
+					end
+				end else begin
+					sd_state <= sd_reset ;
+				end	
+			end
+               
                // Ожидание команды обмена
-               sd_idle :
-                        begin
-                           // бездействие
-                           if (start == 1'b0) begin
-                             idle <= 1'b1 ;   // флаг готовности к обмену 
-                             sdcard_cs <= 1'b1;
-                           end  
-                           // запуск ввода-вывода
-                           if (start == 1'b1) begin
-                               sdcard_cs <= 1'b0;
-                               card_error <= 1'b0 ; 
-                               idle <= 1'b0 ;    // снимаем флаг готовности
-                               counter <= 48 ;   // длина команды
-                               sd_state <= sd_send_cmd ; // отправляем команду
-                               // запуск чтения
-                                if (write_mode == 1'b0)  begin
-                                 // команда чтения сектора для SDHC
-                                 sd_cmd <= {8'h51, 5'b00000, sdcard_addr, 8'h01} ; 
-                                 sd_nextstate <= sd_read_data_waitstart ; // и переходим к ожиданию стартового токена
-                               end 
-                           
-                               // запуск записи
-                               else  begin
-                                 sd_cmd <= {8'h58 , 5'b00000, sdcard_addr, 8'h01 } ; 
-                                 sd_nextstate <= sd_write_checkresponse ; 
-                               end 
-                           end 
-                        end
+					
+               sd_idle : begin
+						// бездействие
+						if (start == 1'b0) begin
+							idle <= 1'b1 ;   // флаг готовности к обмену 
+							sdcard_cs <= 1'b1;
+						end  
+						// запуск ввода-вывода
+						if (start == 1'b1) begin
+							sdcard_cs <= 1'b0;
+							card_error <= 1'b0 ; 
+							idle <= 1'b0 ;    // снимаем флаг готовности
+							counter <= 16'd48 ;   // длина команды
+							sd_state <= sd_send_cmd ; // отправляем команду
+
+							// запуск чтения
+							if (write_mode == 1'b0) begin
+								// команда чтения сектора для SDHC
+								if (sdcard_sdhc == 1'b1)
+									sd_cmd <= {8'h51, 5'b00000, sdcard_addr, 8'h01} ; 
+								else
+//									sd_cmd <= {8'h51, 5'b00000, sdcard_addr, 8'h01} ; 
+									sd_cmd <= {8'h51, sdcard_addr[22:0], 9'b0, 8'hFF} ;
+
+								sd_nextstate <= sd_read_data_waitstart ; // и переходим к ожиданию стартового токена
+							end else begin // запуск записи
+								if (sdcard_sdhc == 1'b1)
+									sd_cmd <= {8'h58, 5'b00000, sdcard_addr, 8'h01} ; 
+								else
+//									sd_cmd <= {8'h58, 5'b00000, sdcard_addr, 8'h01} ; 
+									sd_cmd <= {8'h58, sdcard_addr[22:0], 9'b0, 8'hFF} ;
+
+								sd_nextstate <= sd_write_checkresponse ; 
+							end 
+						end 
+					end
                         
                // ожидание готовности карты принять данные для записи
                sd_write_checkresponse :
                         begin
                            if (sd_r1 == 7'b0000000)  begin
-                              counter <= 7 ; 
+                              counter <= 16'd7 ; 
                               sd_state <= sd_write_data_startblock ; 
                            end
                            else  sd_state <= sd_error ; 
@@ -326,7 +437,7 @@ always @(posedge sdcard_sclk)  begin
                               sd_word <= {bufdata_out[7:0], bufdata_out[15:8]} ; 
                               sectorindex <= sectorindex + 1'b1 ; 
                               sd_state <= sd_write ; 
-                              counter <= 15 ; 
+                              counter <= 16'd15 ; 
                            end 
                         end
                // запись блока данных         
@@ -339,7 +450,7 @@ always @(posedge sdcard_sclk)  begin
                               sd_word <= {bufdata_out[7:0], bufdata_out[15:8]} ; 
                               if (sectorindex == 8'd255)  sd_state <= sd_write_last ; 
                               sectorindex <= sectorindex + 1'b1 ; 
-                              counter <= 15 ; 
+                              counter <= 16'd15 ; 
                            end 
                         end
                // запись последнего слова данных          
@@ -350,7 +461,7 @@ always @(posedge sdcard_sclk)  begin
                            counter <= counter - 1'b1 ; 
                            if (counter == 0) begin
                               sd_state <= sd_write_crc ; 
-                              counter <= 15 ; 
+                              counter <= 16'd15 ; 
                            end 
                         end
                // запись CRC         
@@ -360,7 +471,7 @@ always @(posedge sdcard_sclk)  begin
                            counter <= counter - 1'b1 ; 
                            if (counter == 0)  begin
                               sd_state <= sd_read_dr ; 
-                              counter <= 8 ; 
+                              counter <= 16'd8 ; 
                            end 
                         end
                // чтение результат записи DR         
@@ -377,7 +488,7 @@ always @(posedge sdcard_sclk)  begin
                            if (sd_dr[3:0] != 4'b0101) sd_state <= sd_error ; 
                            else if (sdcard_miso == 1'b1)
                            begin
-                              counter <= 7 ; 
+                              counter <= 16'd7 ; 
                               sd_state <= sd_wait ; 
                               io_done <= 1'b1 ;         // поднимаем строб окончания записи
                               sd_nextstate <= sd_waitidle ; 
@@ -389,7 +500,7 @@ always @(posedge sdcard_sclk)  begin
                            if (sd_r1 == 7'b0000000) begin
                               if (sdcard_miso == 1'b0) begin
                                  sd_state <= sd_read_data ; 
-                                 counter <= 15 ; 
+                                 counter <= 16'd15 ; 
                                    sbuf_write_en <= 1'b0;
                                  sectorindex <= 8'b11111111 ; 
                               end 
@@ -400,7 +511,7 @@ always @(posedge sdcard_sclk)  begin
                sd_read_data :
                         begin
                            if (counter == 0)  begin
-                              counter <= 15 ; 
+                              counter <= 16'd15 ; 
                               sdbufdata <=  {sd_word[6:0], sdcard_miso, sd_word[14:7]};
                               sbuf_write_en <= 1'b1;
                               sectorindex <= sectorindex + 1'b1 ; 
@@ -418,7 +529,7 @@ always @(posedge sdcard_sclk)  begin
                         begin
                            sbuf_write_en <= 1'b0;
                            if (counter == 0)  begin
-                              counter <= 15 ; 
+                              counter <= 16'd15 ; 
                               sd_state <= sd_wait ; 
                               sd_nextstate <= sd_waitidle ; 
                               io_done <= 1'b1 ;       // поднимаем флаг окончания 
@@ -428,28 +539,54 @@ always @(posedge sdcard_sclk)  begin
                               counter <= counter - 1'b1 ; 
                            end 
                         end
-               // отправка команды 
-               sd_send_cmd :
-                        begin
-                           if (counter != 0)  begin
-                              counter <= counter - 1'b1 ; 
-                              sdcard_mosi <= sd_cmd[47] ; 
-                              sd_cmd <= {sd_cmd[46:0], 1'b1} ; 
-                           end
-                           else  begin
-                              counter <= 1023 ; 
-                              sd_state <= sd_readr1wait ; 
-                              sdcard_mosi <= 1'b1 ; 
-                           end 
-                        end
-               // ожидание ответа R1
+
+			sd_send_cmd : begin
+				ff_counter <= 5'd16 ;
+				sdcard_mosi <= 1'b1 ;
+				sdcard_cs <= 1'b1 ;
+				sd_state <= sd_send_ff1 ;
+			end
+
+			sd_send_ff1 : begin
+				if (ff_counter != 0) begin
+					ff_counter <= ff_counter - 1'b1 ; 
+				end else begin
+					sdcard_cs <= 1'b0 ;
+					ff_counter <= 5'd16 ;
+					sd_state <= sd_send_ff2 ;
+				end
+			end
+
+			sd_send_ff2 : begin
+				if (ff_counter != 0) begin
+					ff_counter <= ff_counter - 1'b1 ; 
+				end else begin
+					ff_counter <= 5'd16 ;
+					sd_state <= sd_send_cmd2 ;
+				end
+			end
+
+			sd_send_cmd2 : begin
+				if (counter != 0)  begin
+					counter <= counter - 1'b1 ; 
+					sdcard_mosi <= sd_cmd[47] ; 
+					sd_cmd <= {sd_cmd[46:0], 1'b1} ; 
+				end else begin
+					counter <= 16'd65535 ; // ---1023---
+					sd_state <= sd_readr1wait ; 
+					sdcard_mosi <= 1'b1 ;
+					sdcard_cs <= 1'b0 ;
+				end 
+			end
+			
+						// ожидание ответа R1
                sd_readr1wait :
                         begin
                            if (counter != 0)  begin
                               counter <= counter - 1'b1 ; 
                               if (sdcard_miso == 1'b0)  begin
                                  sd_state <= sd_readr1 ; 
-                                 counter <= 7 ; 
+                                 counter <= 16'd7 ; 
                               end 
                            end
                            else  sd_state <= sd_error ; 
@@ -464,19 +601,19 @@ always @(posedge sdcard_sclk)  begin
                            else  begin
                               if (do_readr7 == 1'b1)  begin
                                  do_readr7 <= 1'b0 ; 
-                                 counter <= 31 ; 
+                                 counter <= 16'd31 ; 
                                  sd_r7[0] <= sdcard_miso ; 
                                  sd_state <= sd_readr7 ; 
                               end
                               else if (do_readr3 == 1'b1)  begin
                                  do_readr3 <= 1'b0 ; 
-                                 counter <= 31 ; 
+                                 counter <= 16'd31 ; 
                                  sd_r3[0] <= sdcard_miso ; 
                                  sd_state <= sd_readr3 ; 
                               end
                               else if (sd_nextstate == sd_read_data_waitstart)   sd_state <= sd_read_data_waitstart ; 
                               else  begin
-                                 counter <= 8 ; 
+                                 counter <= 16'd8 ; 
                                  sd_state <= sd_wait ; 
                               end 
                            end 
@@ -489,7 +626,7 @@ always @(posedge sdcard_sclk)  begin
                               counter <= counter - 1'b1 ; 
                            end
                            else  begin
-                              counter <= 8 ; 
+                              counter <= 16'd8 ; 
                               sd_state <= sd_wait ; 
                            end 
                         end
@@ -501,7 +638,7 @@ always @(posedge sdcard_sclk)  begin
                               counter <= counter - 1'b1 ; 
                            end
                            else   begin
-                              counter <= 8 ; 
+                              counter <= 16'd8 ; 
                               sd_state <= sd_wait ; 
                            end 
                         end
@@ -534,7 +671,7 @@ always @(posedge sdcard_sclk)  begin
                            // 4 попытки повтора команды
                            else sd_state <= sd_reset;
                         end
-            endcase 
-         end 
-   end 
+		endcase 
+	end 
+ end 
 endmodule

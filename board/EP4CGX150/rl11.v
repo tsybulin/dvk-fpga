@@ -1,10 +1,10 @@
 /*
-	128	words per sector
+	128	words per sector (256 bytes)
 	 40	sectors per surface
 	  2	surfaces per cylinder
 	512	cylinders per drive (RL02)
 	
-	===   10_485_760 bytes per drive, 4096 sectors per drive
+	===   10_485_760 bytes per drive, 40960 sectors per drive
 */
 
 module rl11(
@@ -46,7 +46,9 @@ module rl11(
    input                  sdclock,   
 
 // Адрес начала банка на карте
-   input				[26:0]  start_offset
+   input				[26:0]  start_offset,
+	output 			 		  master_sdhc,
+	input				 		  slave_sdhc
 ) ;
 
 	wire	[26:0] 	sdaddr ;						// адрес сектора карты
@@ -71,6 +73,8 @@ module rl11(
 		.sdcard_addr(sdcard_addr),               // адрес блока на карте
 		.sdcard_idle(sdcard_idle),               // сигнал готовности модуля к обмену
 		.sdcard_error(sdcard_error),             // флаг ошибки
+		.master_sdhc(master_sdhc),
+		.slave_sdhc(slave_sdhc),
 
 		// сигналы управления чтением - записью
 		.sdspi_start(sdspi_start),                // строб запуска ввода вывода
@@ -93,16 +97,14 @@ module rl11(
 	localparam BAR_ADR = 15'o76201 ;
 	localparam DAR_ADR = 15'o76202 ;
 	localparam MPR_ADR = 15'o76203 ;
-	localparam BAE_ADR = 15'o76204 ;
 
 	reg [15:0]	csr, // 174400 Control Status (CS)
 					bar, // 174402 Bus Address (BA)
 					dar, // 174404 Disk Address (DA)
-					mpr, // 174406 Multipurpose (MP)
-					bae ;// 174410 Bus Address Extension (BAE)
+					mpr ; // 174406 Multipurpose (MP)
 
 	wire [14:0] adr_i = wb_adr_i[15:1] ;
-	wire rl11_stb = bus_stb & ((adr_i == CSR_ADR) || (adr_i == BAR_ADR) || (adr_i == DAR_ADR) || (adr_i == MPR_ADR) || (adr_i == BAE_ADR)) ;
+	wire rl11_stb = bus_stb & ((adr_i == CSR_ADR) || (adr_i == BAR_ADR) || (adr_i == DAR_ADR) || (adr_i == MPR_ADR)) ;
 
 	localparam IS_IDLE = 2'd0 ;	// ожидание прерывания
 	localparam IS_REQ  = 2'd1 ;   // запрос векторного прерывания
@@ -114,7 +116,7 @@ module rl11(
 
 	wire			CS_CRDY	= csr[7] ;
 	wire  [2:0] RL_FUNC	= csr[3:1] ;
-	wire [12:0] RLWC		= mpr[12:0] ;
+	wire [15:0] RLWC		= mpr ;
 	
 	wire  [1:0]	dn = csr[9:8] ; // drive number
 	wire  [8:0] cyl = dar[15:7] ;
@@ -150,8 +152,8 @@ module rl11(
 	always @(posedge clk_p) begin
 		if (sys_init) begin
 			csr <= 16'o201 ;
-			dar <= 16'b0 ;
-			bae <= 16'b0 ;
+			dar[5:0] <= 6'b0 ;
+			mpr <= 16'b0 ;
 			irq <= 1'b0 ;
 			rl11_ack	<= 1'b0 ;
 			rl_state <= RS_IDLE ;
@@ -216,11 +218,6 @@ module rl11(
 							if (wb_sel_i[1])
 								mpr[15:8] <= wb_dat_i[15:8] ;
 						end
-
-						BAE_ADR : begin
-							if (wb_sel_i[0])
-								bae[5:0] <= wb_dat_i[5:0] ;
-						end
 					endcase
 				end else begin
 					case (adr_i)
@@ -228,7 +225,6 @@ module rl11(
 						BAR_ADR : wb_dat_o <= bar ;
 						DAR_ADR : wb_dat_o <= dar ;
 						MPR_ADR : wb_dat_o <= mpr ;
-						BAE_ADR : wb_dat_o <= bae ;
 					endcase
 				end
 
@@ -328,7 +324,7 @@ module rl11(
 					end
 					
 					RS_R05 : begin
-						if (RLWC == 13'b0) begin
+						if (RLWC == 16'b0) begin
 							dma_req <= 1'b0 ;
 							csr[7] <= 1'b1 ;
 							if (ie)
@@ -355,7 +351,7 @@ module rl11(
 						sdbuf_addr <= sdbuf_addr + 1'b1 ;
 						rl_state <= RS_R04 ;
 						
-						if (sdbuf_addr == 8'd127 && RLWC != 13'o17777) begin
+						if (sdbuf_addr == 8'd127 && RLWC != 16'o177777) begin
 							dma_req <= 1'b0 ;
 							rl_state <= RS_R01 ;
 						end
@@ -394,7 +390,7 @@ module rl11(
 					
 					RS_W04 : if (~dma_ack_i) begin
 						sdbuf_we <= 1'b0 ;
-						if (sdbuf_addr < 8'd128 && RLWC != 13'b0) begin
+						if (sdbuf_addr < 8'd128 && RLWC != 16'b0) begin
 							mpr <= mpr + 1'b1 ;
 							bar <= bar + 2'd2 ;
 						end
@@ -422,7 +418,7 @@ module rl11(
 						sdspi_start <= 1'b0 ;
 						sdreq <= 1'b0 ;
 						
-						if (RLWC == 13'b0) begin
+						if (RLWC == 16'b0) begin
 							csr[7] <= 1'b1 ;
 							if (ie)
 								interrupt_trigger <= 1'b1 ;

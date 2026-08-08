@@ -46,18 +46,20 @@ module rh70 (
    input                  sdclock,   
 
 // Адрес начала банка на карте
-   input [26:0]           start_offset
-   ); 
+   input [26:0]           start_offset,
+	output 			 		  master_sdhc,
+	input				 		  slave_sdhc
+); 
 
    
 // Геометрия диска
 //--------------------------------------------------
 // Число секторов на дорожке, SPT
-assign spt =  8'd22;   
+wire[7:0] spt =  8'd22;   
 // число дорожек на цилиндр (головок)                                
-assign track_per_cyl = 8'd19;    
+wire[7:0] track_per_cyl = 8'd19;    
 // число цилиндров
-assign cyl_limit = 16'd815 ; 
+wire[15:0] cyl_limit = 16'd815 ; 
 
 // Регистры устройства
 //=================================================================================================== 
@@ -322,9 +324,6 @@ reg[11:0] rmclock;
 wire[1:0] rmclock_piptimer; 
 reg rhcs1_rdyset; 
 reg[21:1] ram_phys_addr; 
-wire[7:0] spt; 
-wire[7:0] track_per_cyl; 
-wire[15:0] cyl_limit; 
 reg write_start; 
 reg read_start; 
 reg iocomplete;          // признак завершения работы DMA-контроллера
@@ -389,6 +388,8 @@ sdspi sd1 (
       .sdcard_mosi(sdcard_mosi), 
       .sdcard_miso(sdcard_miso),
       .sdcard_sclk(sdcard_sclk),
+		.master_sdhc(master_sdhc),
+		.slave_sdhc(slave_sdhc),
       
       .sdcard_addr(sdcard_addr),                  // адрес блока на карте
       .sdcard_idle(sdcard_idle),                  // сигнал готовности модуля к обмену

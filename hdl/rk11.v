@@ -51,8 +51,10 @@ module rk11 (
    input [26:0]           start_offset,
    
 // отладочные сигналы
-   output [3:0]           sdcard_debug
-   ); 
+   output [7:0]           sdcard_debug,
+	output 			 		  master_sdhc,
+	input				 		  slave_sdhc
+); 
 
 // Сигналы упраления обменом с шиной
 wire bus_strobe = wb_cyc_i & wb_stb_i & ~wb_ack_o;   // строб цикла шины
@@ -201,11 +203,12 @@ sdspi sd1 (
       .sdcard_miso(sdcard_miso),
       .sdcard_sclk(sdcard_sclk),
       
-      .sdcard_debug(sdcard_debug),                // информационные индикаторы   
-   
       .sdcard_addr(sdcard_addr),                  // адрес блока на карте
       .sdcard_idle(sdcard_idle),                  // сигнал готовности модуля к обмену
       .sdcard_error(sdcard_error),                // флаг ошибки
+		.sdcard_debug(sdcard_debug),
+		.master_sdhc(master_sdhc),
+		.slave_sdhc(slave_sdhc),
       
       // сигналы управления чтением - записью
       .sdspi_start(sdspi_start),                // строб запуска ввода вывода
