@@ -90,8 +90,8 @@ set_location_assignment PIN_AE23 -to sdcard_cs
 set_location_assignment PIN_AF20 -to sdcard_miso
 set_location_assignment PIN_AE22 -to sdcard_mosi
 set_location_assignment PIN_AD20 -to sdcard_sclk
-set_location_assignment PIN_AF23 -to sw[0]
-set_location_assignment PIN_AF22 -to sw[1]
+set_location_assignment PIN_AF22 -to sw[0]
+set_location_assignment PIN_AF23 -to sw[1]
 set_location_assignment PIN_AE21 -to sw[2]
 set_location_assignment PIN_C14 -to cons_col[0]
 set_location_assignment PIN_C4 -to cons_col[1]
